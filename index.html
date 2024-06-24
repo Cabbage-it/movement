@@ -86,7 +86,6 @@
                 a.x = x + start.x; a.y = y + start.y;
                 a.draw();
             }
-            \\ はじめ
             CORE.canvas.addEventListener("pointerdown", (e) => {
                 start.x = a.x - e.offsetX / CORE.resolutionRatio;
                 start.y = a.y - e.offsetY / CORE.resolutionRatio;
@@ -101,7 +100,6 @@
                     CORE.canvas.addEventListener("touchmove", mov);
                 }
             })
-            \\ 終わり
             CORE.canvas.addEventListener("pointerup", (e) => {
                 CORE.canvas.removeEventListener("pointermove", mov);
             })
