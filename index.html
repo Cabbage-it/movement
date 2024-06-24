@@ -96,6 +96,9 @@
             CORE.canvas.addEventListener("pointerup", (e) => {
                 CORE.canvas.removeEventListener("pointermove", mov);
             })
+            CORE.canvas.addEventListener("pointerleave", (e) => {
+                CORE.canvas.removeEventListener("pointermove", mov);
+            })
         }
 
         class Node {
