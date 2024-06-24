@@ -1,0 +1,133 @@
+<html>
+
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: gray;
+            text-align: center;
+        }
+
+        #canvas {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script>
+        const CORE = {
+            setup: function (w, h) {
+                this.engine = new Engine(w, h);
+            }
+        }
+
+        class Engine {
+            constructor(w, h) {
+                const canvas = document.getElementById("canvas");
+                canvas.width = w;
+                canvas.height = h;
+                canvas.style.backgroundColor = "#f0f0f0";
+                CORE.canvas = canvas;
+                CORE.ctx = canvas.getContext("2d");
+
+                window.addEventListener('resize', () => { this.resizeCanvas(); });
+                this.resizeCanvas();
+            }
+            resizeCanvas() {
+                const canvas = CORE.canvas;
+                const canvasHeightRatio = canvas.height / canvas.width;
+                const windowHeightRatio = window.innerHeight / window.innerWidth;
+
+                let width;
+                let height;
+                if (windowHeightRatio > canvasHeightRatio) {
+                    width = window.innerWidth;
+                    height = window.innerWidth * (canvas.height / canvas.width);
+                } else {
+                    width = window.innerHeight * (canvas.width / canvas.height);
+                    height = window.innerHeight;
+                }
+
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                CORE.resolutionRatio = height / canvas.height;
+            }
+
+        }
+
+        function rectFill(x, y, text, color) {
+            const ctx = CORE.ctx;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = "black";
+            ctx.font = '36px Serif';
+            t = ctx.measureText(text)
+            t1 = ctx.measureText("(j)")
+            height = t1.actualBoundingBoxAscent + t1.actualBoundingBoxDescent;
+            ctx.fillRect(x, y, t.width, height);
+            ctx.strokeRect(x, y, t.width, height);
+            ctx.fillStyle = "#ff6600";
+            ctx.textBaseline = "top"
+            ctx.fillText(text, x, y);
+        }
+
+        const CANVAS_HEIGHT = 550;
+        const CANVAS_WIDTH = 550;
+        window.onload = function () {
+            console.log("absorbed ← 適当に思いついた単語")
+            CORE.setup(CANVAS_WIDTH, CANVAS_HEIGHT);
+            const a = new Node("absorbed");
+            const b = new Node("aaaaa");
+        }
+
+        class Node {
+            constructor(text) {
+                this.x = 50;
+                this.y = 50;
+                this.prop = " "+text+" ";
+                this.color = "#ffffff";
+                this.draw();
+                this.move();
+            }
+            draw() {
+                rectFill(this.x, this.y, this.prop, this.color);
+                const ctx = CORE.ctx;
+                ctx.font = '36px Serif';
+                t = ctx.measureText(this.prop)
+                t1 = ctx.measureText("(j)")
+                this.height = t1.actualBoundingBoxAscent + t1.actualBoundingBoxDescent;
+                this.width = t.width;
+            }
+            move() {
+                
+                let start = { x: 0, y: 0 };
+                let mov = (e) => {
+                    // ↓問題児1
+                    CORE.ctx.clearRect(0, 0, CANVAS_HEIGHT, CANVAS_WIDTH)
+                    const x = e.offsetX / CORE.resolutionRatio;
+                    const y = e.offsetY / CORE.resolutionRatio;
+                    this.x = x + start.x; this.y = y + start.y;
+                    this.draw();
+                }
+                CORE.canvas.addEventListener("pointerdown", (e) => {
+                    start.x = this.x - e.offsetX / CORE.resolutionRatio;
+                    start.y = this.y - e.offsetY / CORE.resolutionRatio;
+                    if (start.x <= 0 && start.x >= -this.width && start.y <= 0 && start.y >= -this.height) {
+                        CORE.canvas.addEventListener("pointermove", mov);
+                    }
+                })
+                CORE.canvas.addEventListener("pointerup", (e) => {
+                    CORE.canvas.removeEventListener("pointermove", mov);
+                })
+                CORE.canvas.addEventListener("pointerleave", (e) => {
+                    CORE.canvas.removeEventListener("pointermove", mov);
+                })
+            }
+        }
+
+
+    </script>
+</head>
+
+<body><canvas id="canvas"></canvas></body>
+
+</html>
