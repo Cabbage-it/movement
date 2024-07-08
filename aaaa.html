@@ -73,17 +73,32 @@
         const CANVAS_HEIGHT = 550;
         const CANVAS_WIDTH = 550;
         window.onload = function () {
-            console.log("absorbed ← 適当に思いついた単語")
             CORE.setup(CANVAS_WIDTH, CANVAS_HEIGHT);
-            const a = new Node("absorbed");
+            const c = new Node("absorbed")
             const b = new Node("aaaaa");
+            const a = [b, c];
+            let redraw = e => {
+                CORE.ctx.clearRect(0, 0, CANVAS_HEIGHT, CANVAS_WIDTH);
+                for (let i = 1; i >= 0; i--) {
+                    p= a[i].draw();
+                };
+            }
+
+            CORE.canvas.addEventListener("pointerdown", (e) => { CORE.canvas.addEventListener("pointermove", redraw); })
+
+            CORE.canvas.addEventListener("pointerup", (e) => {
+                CORE.canvas.removeEventListener("pointermove", redraw);
+            })
+            CORE.canvas.addEventListener("pointerleave", (e) => {
+                CORE.canvas.removeEventListener("pointermove", redraw);
+            })
         }
 
         class Node {
             constructor(text) {
                 this.x = 50;
                 this.y = 50;
-                this.prop = " "+text+" ";
+                this.prop = " " + text + " ";
                 this.color = "#ffffff";
                 this.draw();
                 this.move();
@@ -98,15 +113,12 @@
                 this.width = t.width;
             }
             move() {
-                
+
                 let start = { x: 0, y: 0 };
                 let mov = (e) => {
-                    // ↓問題児1
-                    CORE.ctx.clearRect(0, 0, CANVAS_HEIGHT, CANVAS_WIDTH)
                     const x = e.offsetX / CORE.resolutionRatio;
                     const y = e.offsetY / CORE.resolutionRatio;
                     this.x = x + start.x; this.y = y + start.y;
-                    this.draw();
                 }
                 CORE.canvas.addEventListener("pointerdown", (e) => {
                     start.x = this.x - e.offsetX / CORE.resolutionRatio;
