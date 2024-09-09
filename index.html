@@ -14,118 +14,11 @@
             padding: 0;
         }
     </style>
-    <script>
-        const CORE = {
-            setup: function (w, h) {
-                this.engine = new Engine(w, h);
-            }
-        }
-
-        class Engine {
-            constructor(w, h) {
-                const canvas = document.getElementById("canvas");
-                canvas.width = w;
-                canvas.height = h;
-                canvas.style.backgroundColor = "#f0f0f0";
-                CORE.canvas = canvas;
-                CORE.ctx = canvas.getContext("2d");
-
-                window.addEventListener('resize', () => { this.resizeCanvas(); });
-                this.resizeCanvas();
-            }
-            resizeCanvas() {
-                const canvas = CORE.canvas;
-                const canvasHeightRatio = canvas.height / canvas.width;
-                const windowHeightRatio = window.innerHeight / window.innerWidth;
-
-                let width;
-                let height;
-                if (windowHeightRatio > canvasHeightRatio) {
-                    width = window.innerWidth;
-                    height = window.innerWidth * (canvas.height / canvas.width);
-                } else {
-                    width = window.innerHeight * (canvas.width / canvas.height);
-                    height = window.innerHeight;
-                }
-
-                canvas.style.width = `${width}px`;
-                canvas.style.height = `${height}px`;
-                CORE.resolutionRatio = height / canvas.height;
-            }
-
-        }
-
-        function rectFill(x, y, text, color) {
-            const ctx = CORE.ctx;
-            ctx.fillStyle = color;
-            ctx.strokeStyle = "black";
-            ctx.font = '36px Serif';
-            t = ctx.measureText(text)
-            t1 = ctx.measureText("(j)")
-            height = t1.actualBoundingBoxAscent + t1.actualBoundingBoxDescent;
-            ctx.fillRect(x, y, t.width, height);
-            ctx.strokeRect(x, y, t.width, height);
-            ctx.fillStyle = "#ff6600";
-            ctx.textBaseline = "top"
-            ctx.fillText(text, x, y);
-            return t, t1;
-        }
-
-        const CANVAS_HEIGHT = 550;
-        const CANVAS_WIDTH = 550;
-        window.onload = function () {
-            console.log("absorbed ← 適当に思いついた単語")
-            let start = { x: 0, y: 0 };
-            CORE.setup(CANVAS_WIDTH, CANVAS_HEIGHT);
-            const a = new Node();
-            a.draw();
-            mov = (e) => {
-                CORE.ctx.clearRect(0, 0, CANVAS_HEIGHT, CANVAS_WIDTH)
-                const x = e.offsetX / CORE.resolutionRatio;
-                const y = e.offsetY / CORE.resolutionRatio;
-                a.x = x + start.x; a.y = y + start.y;
-                a.draw();
-            }
-            CORE.canvas.addEventListener("pointerdown", (e) => {
-                start.x = a.x - e.offsetX / CORE.resolutionRatio;
-                start.y = a.y - e.offsetY / CORE.resolutionRatio;
-                if (start.x <= 0 && start.x >= -a.width && start.y <= 0 && start.y >= -a.height) {
-                    CORE.canvas.addEventListener("pointermove", mov);
-                }
-            })
-            CORE.canvas.addEventListener("pointerup", (e) => {
-                CORE.canvas.removeEventListener("pointermove", mov);
-            })
-            CORE.canvas.addEventListener("pointerleave", (e) => {
-                CORE.canvas.removeEventListener("pointermove", mov);
-            })
-        }
-
-        class Node {
-            constructor() {
-                this.x = 50;
-                this.y = 50;
-                this.prop = " absorbed "
-                this.color = "#f0f0f0";
-            }
-            draw() {
-                rectFill(this.x, this.y, this.prop, this.color);
-                const ctx = CORE.ctx;
-                ctx.font = '36px Serif';
-                t = ctx.measureText(this.prop)
-                t1 = ctx.measureText("(j)")
-                this.height = t1.actualBoundingBoxAscent + t1.actualBoundingBoxDescent;
-                this.width = t.width;
-            }
-        }
-
-
-    </script>
 </head>
 
 <body>
     <div>
-        <a href="aaab.html">最新版</a>
+        <a href="aaac.html">最新版 2024/09/09 11:20</a>
     </div>
     <canvas id="canvas"></canvas>
 </body>
