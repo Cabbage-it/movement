@@ -1,0 +1,230 @@
+<html>
+
+<head>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: gray;
+            text-align: center;
+        }
+
+        #canvas {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script>
+        const CORE = {
+            setup: function (w, h) {
+                this.engine = new Engine(w, h);
+            }
+        }
+
+        class Engine {
+            constructor(w, h) {
+                const canvas = document.getElementById("canvas");
+                canvas.width = w;
+                canvas.height = h;
+                canvas.style.backgroundColor = "#f0f0f0";
+                CORE.canvas = canvas;
+                CORE.ctx = canvas.getContext("2d");
+
+                window.addEventListener('resize', () => { this.resizeCanvas(); });
+                this.resizeCanvas();
+            }
+
+            resizeCanvas() {
+                const canvas = CORE.canvas;
+                const canvasHeightRatio = canvas.height / canvas.width;
+                const windowHeightRatio = window.innerHeight / window.innerWidth;
+
+                let width, height;
+                if (windowHeightRatio > canvasHeightRatio) {
+                    width = window.innerWidth;
+                    height = window.innerWidth * (canvas.height / canvas.width);
+                } else {
+                    width = window.innerHeight * (canvas.width / canvas.height);
+                    height = window.innerHeight;
+                }
+
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                CORE.resolutionRatio = height / canvas.height;
+            }
+        }
+
+        function rectFill(x, y, text, color) {
+            const ctx = CORE.ctx;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = "black";
+            ctx.font = '36px Serif';
+            const textMetrics = ctx.measureText(text);
+            const heightMetrics = ctx.measureText("(j)");
+            const height = heightMetrics.actualBoundingBoxAscent + heightMetrics.actualBoundingBoxDescent;
+            ctx.fillRect(x, y, textMetrics.width, height);
+            ctx.strokeRect(x, y, textMetrics.width, height);
+            ctx.fillStyle = "#000000";
+            ctx.textBaseline = "top";
+            ctx.fillText(text, x, y);
+        }
+
+        function arrowdraw(fromNum, toNum, nodes) {
+
+            const ctx = CORE.ctx;
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            (node => ctx.moveTo(node.x + node.width / 2, node.y + node.height))(nodes[fromNum]);
+            (node => ctx.lineTo(node.x + node.width / 2, node.y))(nodes[toNum]);
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        const CANVAS_HEIGHT = 550;
+        const CANVAS_WIDTH = 550;
+
+        window.onload = function () {
+            CORE.setup(CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            const nodes = [
+                new Node("absorbed", 100, 100),
+                new Node("aaaaa", 200, 200),
+                new Node("aaaaa", 300, 200)
+            ];
+
+            const arrows = [
+                new Arrow(0, 1)
+            ];
+
+            function redraw() {
+                CORE.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                nodes.forEach(node => node.draw());
+                arrows.forEach(arrow => arrow.draw(nodes));
+            }
+
+            CORE.canvas.addEventListener("pointerdown", function (e) {
+                const x = e.offsetX / CORE.resolutionRatio;
+                const y = e.offsetY / CORE.resolutionRatio;
+
+                // 後ろから順番にノードをチェック
+                
+                len = nodes.length - 1
+                for (let i = len; i >= 0; i--) {
+                    if (nodes[i].isPointerInside(x, y)) {
+                        // 上のノードが選択されたら、ドラッグ開始
+                        nodes[i].startDrag(x, y);
+                        // 選択されたノードを最前面に移動する
+                        const selectedNode = nodes.splice(i, 1)[0];
+                        nodes.push(selectedNode);
+                        for (let j = 0; j <= arrows.length-1; j++) {
+                            if (arrows[j].fromNum == i) {
+                                arrows[j].fromNum = len
+                            }
+                            else if (arrows[j].fromNum > i) {
+                                arrows[j].fromNum = arrows[j].fromNum -1
+                            }
+                            if (arrows[j].toNum == i) {
+                                arrows[j].toNum = len
+                            } 
+                            else if (arrows[j].toNum > i) {
+                                arrows[j].toNum = arrows[j].toNum-1
+                            }
+                        }
+                        break; // 一つのノードだけを選択
+                    }
+                }
+            });
+
+            CORE.canvas.addEventListener("pointermove", function (e) {
+                const x = e.offsetX / CORE.resolutionRatio;
+                const y = e.offsetY / CORE.resolutionRatio;
+
+                nodes.forEach(node => {
+                    if (node.isDragging) {
+                        node.updatePosition(x, y);
+                        redraw();
+                    }
+                });
+
+            });
+
+            CORE.canvas.addEventListener("pointerup", function () {
+                nodes.forEach(node => node.stopDrag());
+            });
+
+            CORE.canvas.addEventListener("pointerleave", function () {
+                nodes.forEach(node => node.stopDrag());
+            });
+
+            redraw();
+        }
+
+        class Node {
+            constructor(text, initialX, initialY) {
+                this.x = initialX;
+                this.y = initialY;
+                this.text = " " + text + " ";
+                this.color = "#ffffff";
+                this.width = 0;
+                this.height = 0;
+                this.isDragging = false;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.calculateDimensions();
+            }
+
+            calculateDimensions() {
+                const ctx = CORE.ctx;
+                ctx.font = '36px Serif';
+                const textMetrics = ctx.measureText(this.text);
+                const heightMetrics = ctx.measureText("(j)");
+                this.width = textMetrics.width;
+                this.height = heightMetrics.actualBoundingBoxAscent + heightMetrics.actualBoundingBoxDescent;
+            }
+
+            draw() {
+                rectFill(this.x, this.y, this.text, this.color);
+            }
+
+            isPointerInside(pointerX, pointerY) {
+                return pointerX >= this.x && pointerX <= this.x + this.width &&
+                    pointerY >= this.y && pointerY <= this.y + this.height;
+            }
+
+            startDrag(pointerX, pointerY) {
+                this.isDragging = true;
+                this.offsetX = this.x - pointerX;
+                this.offsetY = this.y - pointerY;
+            }
+
+            updatePosition(pointerX, pointerY) {
+                const newX = pointerX + this.offsetX;
+                const newY = pointerY + this.offsetY;
+
+                // Boundaries check
+                this.x = Math.max(0, Math.min(newX, CANVAS_WIDTH - this.width));
+                this.y = Math.max(0, Math.min(newY, CANVAS_HEIGHT - this.height));
+            }
+
+            stopDrag() {
+                this.isDragging = false;
+            }
+        }
+
+        class Arrow {
+            constructor(fromNum, toNum) {
+                this.fromNum = fromNum;
+                this.toNum = toNum;
+            }
+
+            draw(nodes) {
+                arrowdraw(this.fromNum, this.toNum, nodes);
+            }
+        }
+
+    </script>
+</head>
+
+<body><canvas id="canvas"></canvas></body>
+
+</html>
