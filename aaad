@@ -1,0 +1,304 @@
+<html>
+
+<head>
+    <title>形式証明 with フローチャート</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: lightgray;
+            text-align: center;
+        }
+
+        #canvas {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+    <script>
+        //証明支援システム
+        class Proof {
+            constructor() {
+                this.props = ["T"];
+                this.up = { 0: new Set([0]) };
+                this.down = { 0: new Set([0]) };
+            }
+
+            addprop() { }
+
+        }
+
+        // グラフィック
+        const CORE = {
+            setup: function (w, h) {
+                this.engine = new Engine(w, h);
+            }
+        }
+
+        class Engine {
+            constructor(w, h) {
+                const canvas = document.getElementById("canvas");
+                canvas.width = w;
+                canvas.height = h;
+                canvas.style.backgroundColor = "#f0f0ff";
+                CORE.canvas = canvas;
+                CORE.ctx = canvas.getContext("2d");
+
+                window.addEventListener('resize', () => { this.resizeCanvas(); });
+                this.resizeCanvas();
+            }
+
+            resizeCanvas() {
+                const canvas = CORE.canvas;
+                const canvasHeightRatio = canvas.height / canvas.width;
+                const windowHeightRatio = window.innerHeight / window.innerWidth;
+
+                let width, height;
+                if (windowHeightRatio > canvasHeightRatio) {
+                    width = window.innerWidth;
+                    height = window.innerWidth * (canvas.height / canvas.width);
+                } else {
+                    width = window.innerHeight * (canvas.width / canvas.height);
+                    height = window.innerHeight;
+                }
+
+                canvas.style.width = `${width}px`;
+                canvas.style.height = `${height}px`;
+                CORE.resolutionRatio = height / canvas.height;
+            }
+        }
+
+        function rectFill(x, y, text, color, size = 360, margin = 0) {
+            const ctx = CORE.ctx;
+            ctx.fillStyle = color;
+            ctx.strokeStyle = "black";
+            ctx.font = size + 'px MSゴシック';
+            ctx.lineWidth = 8;
+            const textMetrics = ctx.measureText(text);
+            const heightMetrics = ctx.measureText("(j)");
+            const height = heightMetrics.actualBoundingBoxAscent + heightMetrics.actualBoundingBoxDescent + margin * 2;
+            ctx.fillRect(x, y, textMetrics.width, height);
+            ctx.strokeRect(x, y, textMetrics.width, height);
+            ctx.fillStyle = "#000000";
+            ctx.textBaseline = "top";
+            ctx.fillText(text, x, y + margin);
+        }
+
+        function arrowdraw(fromNum, toNum, nodes, oder) {
+
+            const ctx = CORE.ctx;
+            ctx.lineWidth = 8;
+            const from = (node => ({ x: node.x + node.width / 2, y: node.y + node.height }))(nodes[oder.indexOf(fromNum)]);
+            const to = (node => ({ x: node.x + node.width / 2, y: node.y }))(nodes[oder.indexOf(toNum)]);
+            ctx.strokeStyle = "black";
+            ctx.beginPath();
+            ctx.moveTo(from.x, from.y);
+            ctx.lineTo(to.x, to.y);
+            ctx.stroke()
+
+            let arrowhead = new Path2D();
+            const size = ((to.x - from.x) ** 2 + (to.y - from.y) ** 2) ** (1 / 2);
+            const dir = { x: (from.x - to.x) * 70 / size, y: (from.y - to.y) * 70 / size };
+            const right = { x: dir.x * Math.cos(Math.PI / 6) - dir.y * Math.sin(Math.PI / 6), y: dir.x * Math.sin(Math.PI / 6) + dir.y * Math.cos(Math.PI / 6) }
+            const left = { x: dir.x * Math.cos(Math.PI / 6) + dir.y * Math.sin(Math.PI / 6), y: -dir.x * Math.sin(Math.PI / 6) + dir.y * Math.cos(Math.PI / 6) }
+            arrowhead.moveTo(to.x, to.y);
+            arrowhead.lineTo(to.x + right.x, to.y + right.y);
+            arrowhead.lineTo(to.x + left.x, to.y + left.y);
+            arrowhead.lineTo(to.x, to.y);
+            arrowhead.closePath();
+
+            ctx.fillStyle = "black";
+            ctx.fill(arrowhead)
+
+
+        }
+
+        const CANVAS_HEIGHT = 5000;
+        const CANVAS_WIDTH = 10000;
+
+        window.onload = function () {
+            const Pr = new Proof()
+            CORE.setup(CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            const nodes = [
+                new Node("0", 1000, 1000),
+                new Node("1", 2000, 2000),
+                new Node("2", 3000, 2000)
+            ];
+
+            const oder = [0, 1, 2];
+
+            const arrows = [
+                new Arrow(0, 1)
+            ];
+
+            const buttons = [
+                new Button("hey", 100, 100, () => {
+                    arrows.push(new Arrow(0, 2));
+                    redraw()
+                })
+            ];
+
+            function redraw() {
+                CORE.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                nodes.forEach(node => node.draw());
+                arrows.forEach(arrow => arrow.draw(nodes, oder));
+
+                buttons.forEach(button => button.draw());
+            }
+
+            CORE.canvas.addEventListener("pointerdown", function (e) {
+                const x = e.offsetX / CORE.resolutionRatio;
+                const y = e.offsetY / CORE.resolutionRatio;
+                // ボタンチェック
+                for (const button of buttons) {
+                    if (button.isPointerInside(x, y)) {
+                        button.event();
+                        return undefined;// おわり
+                    }
+                }
+                // 後ろから順番にノードをチェック
+
+                const len = nodes.length - 1
+                for (let i = len; i >= 0; i--) {
+                    if (nodes[i].isPointerInside(x, y)) {
+                        // 上のノードが選択されたら、ドラッグ開始
+                        nodes[i].startDrag(x, y);
+                        // 選択されたノードを最前面に移動する
+                        const selectedNode = nodes.splice(i, 1)[0];
+                        nodes.push(selectedNode);
+                        const selectedOder = oder.splice(i, 1)[0];
+                        oder.push(selectedOder);
+
+                        break; // 一つのノードだけを選択
+                    }
+                }
+
+            });
+
+            CORE.canvas.addEventListener("pointermove", function (e) {
+                const x = e.offsetX / CORE.resolutionRatio;
+                const y = e.offsetY / CORE.resolutionRatio;
+
+                nodes.forEach(node => {
+                    if (node.isDragging) {
+                        node.updatePosition(x, y);
+                        redraw();
+                    }
+                });
+
+            });
+
+            CORE.canvas.addEventListener("pointerup", function () {
+                nodes.forEach(node => node.stopDrag());
+            });
+
+            CORE.canvas.addEventListener("pointerleave", function () {
+                nodes.forEach(node => node.stopDrag());
+            });
+
+            redraw();
+        }
+
+        class Node {
+            constructor(text, initialX, initialY) {
+                this.x = initialX;
+                this.y = initialY;
+                this.text = " " + text + " ";
+                this.color = "#ffffff";
+                this.width = 0;
+                this.height = 0;
+                this.isDragging = false;
+                this.offsetX = 0;
+                this.offsetY = 0;
+                this.calculateDimensions();
+            }
+
+            calculateDimensions() {
+                const ctx = CORE.ctx;
+                ctx.font = '360px MSゴシック';
+                const textMetrics = ctx.measureText(this.text);
+                const heightMetrics = ctx.measureText("(j)");
+                this.width = textMetrics.width;
+                this.height = heightMetrics.actualBoundingBoxAscent + heightMetrics.actualBoundingBoxDescent;
+            }
+
+            draw() {
+                rectFill(this.x, this.y, this.text, this.color);
+            }
+
+            isPointerInside(pointerX, pointerY) {
+                return pointerX >= this.x && pointerX <= this.x + this.width &&
+                    pointerY >= this.y && pointerY <= this.y + this.height;
+            }
+
+            startDrag(pointerX, pointerY) {
+                this.isDragging = true;
+                this.offsetX = this.x - pointerX;
+                this.offsetY = this.y - pointerY;
+            }
+
+            updatePosition(pointerX, pointerY) {
+                const newX = pointerX + this.offsetX;
+                const newY = pointerY + this.offsetY;
+
+                // Boundaries check
+                this.x = Math.max(0, Math.min(newX, CANVAS_WIDTH - this.width));
+                this.y = Math.max(0, Math.min(newY, CANVAS_HEIGHT - this.height));
+            }
+
+            stopDrag() {
+                this.isDragging = false;
+            }
+        }
+
+        class Arrow {
+            constructor(fromNum, toNum) {
+                this.fromNum = fromNum;
+                this.toNum = toNum;
+            }
+
+            draw(nodes, oder) {
+                arrowdraw(this.fromNum, this.toNum, nodes, oder);
+            }
+        }
+
+        class Button {
+            constructor(text, x, y, event) {
+                this.x = x;
+                this.y = y;
+                this.text = " " + text + " ";
+                this.event = event;
+                this.color = "#f5f5ff";
+                this.width = 0;
+                this.height = 0;
+                this.calculateDimensions();
+            }
+
+            calculateDimensions() {
+                const ctx = CORE.ctx;
+                ctx.font = '200px MSゴシック';
+                const textMetrics = ctx.measureText(this.text);
+                const heightMetrics = ctx.measureText("(j)");
+                this.width = textMetrics.width;
+                this.height = heightMetrics.actualBoundingBoxAscent + heightMetrics.actualBoundingBoxDescent + 50;
+            }
+
+            draw() {
+                rectFill(this.x, this.y, this.text, this.color, 200, 25);
+            }
+
+            isPointerInside(pointerX, pointerY) {
+                return pointerX >= this.x && pointerX <= this.x + this.width &&
+                    pointerY >= this.y && pointerY <= this.y + this.height;
+            }
+        }
+
+    </script>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+
+</html>
