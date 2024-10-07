@@ -17,14 +17,109 @@
     </style>
     <script>
         //証明支援システム
+        let Sym = {
+            and: "∧", or: "∨", if: "⇒", not: "￢", forall: "∀", exists: "∃"
+        }
+
+        function isAtom(text) {
+            Sym.forEach(i => { if (text.includes(i)) { return false } })
+            return true;
+        }
+
+        function brace(text) {
+            if (isAtom(text)) {
+                return text;
+            } else {
+                return `(${text})`
+            }
+        }
+
         class Proof {
             constructor() {
-                this.props = ["T"];
-                this.up = { 0: new Set([0]) };
-                this.down = { 0: new Set([0]) };
+                this.props = ["T", "⊥"];
+                this.up = { 0: new Set([0, 1]), 1: new Set([0]) };
+                this.down = { 0: new Set([0]), 1: new Set([0, 1]) };
             }
 
-            addprop() { }
+            //n1->n2
+            _connect(n1, n2) {
+                for (const i of this.up[n1]) {
+                    for (const j of this.down[n2]) {
+                        this.down[i].add(j)
+                        this.up[j].add(i)
+                    }
+                }
+            }
+
+            //探す、なかったら追加する
+            _finditem(text) {
+                let existance = false;
+                const N = this.props.length();
+                for (let i = 0; i < N; i++) {
+                    if (this.props[i] == text) {
+                        existance = true;
+                        return i;
+                        break;
+                    }
+                }
+
+                if (!existance) {
+                    this.props.push(text);
+                    this.up[N] = new Set([N]);
+                    this.down[N] = new Set([N]);
+                    this._connect(N, 0);
+                    this._connect(1, N);
+                    return N;
+                }
+            }
+
+            assume(text) {
+                _finditem(text);
+            }
+
+            find(text) {
+                for (let i = 0; i < this.props.length(); i++) {
+                    if (this.props[i] == text) {
+                        existance = true;
+                        return i;
+                        break;
+                    }
+                }
+                return -1;
+            }
+
+            and(n1, n2) {
+                const text = brace(this.props[n1]) + Sym.and + brace(this.props[n2]);
+                N = this._finditem(text);
+                [...(this.up[n1])].filter(x => this.up[n2].has(x)).forEach(i => {
+                    this._connect(i, N);
+                })
+                this._connect(N, n1);
+                this._connect(N, n2);
+            }
+
+            or(n1, n2) {
+                const text = brace(this.props[n1]) + Sym.or + brace(this.props[n2]);
+                N = this._finditem(text);
+                [...(this.up[n1])].filter(x => this.up[n2].has(x)).forEach(i => {
+                    this._connect(N, i);
+                })
+                this._connect(n1, N);
+                this._connect(n2, N);
+            }
+
+            not(n) {
+                const text = Sym.not + brace(this.props[n]);
+                N = this._finditem(text);
+                if (this.up[1].has(n)) {
+                    this._connect(0, N)
+                }
+
+                M = this.find(brace(this.props[n]) + Sym.and + text)
+                if(M!=-1){
+                    this._connect(M, 1)
+                }
+            }
 
         }
 
