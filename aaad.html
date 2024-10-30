@@ -95,6 +95,7 @@
                 })
                 this._connect(N, n1);
                 this._connect(N, n2);
+                console.log(N, n1, n2)
             }
 
             or(n1, n2) {
@@ -120,10 +121,13 @@
                 }
             }
 
-            not2(n) {
-                const text = brace(this.props[n]) + Sym.and + brace(Sym.not + brace(this.props[n]));
+            not2(n1, n2) {
+                const text = brace(this.props[n1]) + Sym.and + brace(this.props[n2]);
                 const N = this._finditem(text);
                 //A∧B→⊥からA→￢B
+                if (this.up[1].has(N)) {
+                    this._connect(n1, N)
+                }
             }
 
             raa(n) {
@@ -197,7 +201,7 @@
         function arrowdraw(fromNum, toNum, nodes, oder, margin = 0) {
 
             const ctx = CORE.ctx;
-            ctx.lineWidth = 17;
+            ctx.lineWidth = 10;
             const from = (node => ({ x: node.x + node.width / 2, y: node.y + node.height * 1.125 }))(nodes[oder.indexOf(fromNum)]);
             const to = (node => ({ x: node.x + node.width / 2, y: node.y }))(nodes[oder.indexOf(toNum)]);
             ctx.strokeStyle = "black";
@@ -208,7 +212,7 @@
 
             let arrowhead = new Path2D();
             const size = ((to.x - from.x) ** 2 + (to.y - from.y) ** 2) ** (1 / 2);
-            const dir = { x: (from.x - to.x) * 80 / size, y: (from.y - to.y) * 80 / size };
+            const dir = { x: (from.x - to.x) * 60 / size, y: (from.y - to.y) * 60 / size };
             const right = { x: dir.x * Math.cos(Math.PI / 6) - dir.y * Math.sin(Math.PI / 6), y: dir.x * Math.sin(Math.PI / 6) + dir.y * Math.cos(Math.PI / 6) }
             const left = { x: dir.x * Math.cos(Math.PI / 6) + dir.y * Math.sin(Math.PI / 6), y: -dir.x * Math.sin(Math.PI / 6) + dir.y * Math.cos(Math.PI / 6) }
             arrowhead.moveTo(to.x, to.y);
@@ -242,6 +246,8 @@
                     Pr.not1(2);
                     Pr.or(2, 3)
                     Pr.not1(4)
+                    Pr.and(2, 5)
+                    console.log(Pr.props[2], Pr.down[6].has(2))
                     redraw();
                 })
             ];
@@ -259,21 +265,23 @@
                     for (let j of Pr.down[i]) {
                         if (j != 0 && j != 1 && j != i) {
 
-                            mid = [...Pr.down[i]].filter(k => (Pr.down[j].has(k)))
+                            mid = [...Pr.down[i]].filter(k => (Pr.up[j].has(k)))
                             if (mid.length == 2) {
                                 arrows.push(new Arrow(i, j))
+                                
+                                console.log("one", i, j)
                             } else if (Pr.down[j].has(i)) {
                                 if (i == Math.max(...mid) && j == Math.min(...mid)) {
                                     arrows.push(new Arrow(i, j))
-                                    // console.log("two", i, j)
+                                    console.log("two", i, j)
                                 } else if (j == mid[mid.indexOf(i) + 1]) {
                                     arrows.push(new Arrow(i, j))
-                                    // console.log("thr", i, j)
+                                    console.log("thr", i, j)
                                 }
                             } else if (i == Math.min([...Pr.down[i]].filter(k => (Pr.down[i].has(k))))
                                 && j == Math.min([...Pr.down[j]].filter(k => (Pr.down[j].has(k))))) {
                                 arrows.push(new Arrow(i, j))
-                                // console.log("fou", i, j)
+                                console.log("fou", i, j)
                             }
                         }
                     }
