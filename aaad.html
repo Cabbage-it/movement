@@ -95,7 +95,7 @@
                 })
                 this._connect(N, n1);
                 this._connect(N, n2);
-                console.log(N, n1, n2)
+                //console.log(N, n1, n2)
             }
 
             or(n1, n2) {
@@ -126,8 +126,16 @@
                 const N = this._finditem(text);
                 //A∧B→⊥からA→￢B
                 if (this.up[1].has(N)) {
-                    this._connect(n1, N)
+                    const text1 = Sym.not + brace(this.props[n2]);
+                    const N1 = this._finditem(text1);
+                    this._connect(n1, N1)
                 }
+            }
+
+            contradiction(n) {
+                const text = Sym.not + brace(this.props[n]);
+                const N = this._finditem(text);
+                this.up[0].forEach(i => this.down[i].has(n) && this.down[i].has(N) ? this._connect(i, 1) : undefined);
             }
 
             raa(n) {
@@ -137,6 +145,9 @@
                     this._connect(0, n)
                 }
             }
+
+            if1(n1,n2){}//A→BのときA⇒B
+            if2(n1,n2)
 
         }
 
@@ -246,8 +257,11 @@
                     Pr.not1(2);
                     Pr.or(2, 3)
                     Pr.not1(4)
-                    Pr.and(2, 5)
-                    console.log(Pr.props[2], Pr.down[6].has(2))
+                    Pr.and(5, 2)
+                    Pr.contradiction(4)
+                    Pr.not2(5, 2)
+                    Pr.contradiction(4)
+                    Pr.raa(4)
                     redraw();
                 })
             ];
@@ -261,27 +275,29 @@
                 }
 
                 for (let i = 2; i < Pr.props.length; i++) {
+                    if (Pr.down[i].has(1)) {continue;}
                     // console.log(i, "wow", ...Pr.down[i])
                     for (let j of Pr.down[i]) {
-                        if (j != 0 && j != 1 && j != i) {
+
+                        if (j != 0 && j != i) {
 
                             mid = [...Pr.down[i]].filter(k => (Pr.up[j].has(k)))
                             if (mid.length == 2) {
                                 arrows.push(new Arrow(i, j))
-                                
-                                console.log("one", i, j)
+
+                                //console.log("one", i, j)
                             } else if (Pr.down[j].has(i)) {
                                 if (i == Math.max(...mid) && j == Math.min(...mid)) {
                                     arrows.push(new Arrow(i, j))
-                                    console.log("two", i, j)
+                                    //console.log("two", i, j)
                                 } else if (j == mid[mid.indexOf(i) + 1]) {
                                     arrows.push(new Arrow(i, j))
-                                    console.log("thr", i, j)
+                                    //console.log("thr", i, j)
                                 }
                             } else if (i == Math.min([...Pr.down[i]].filter(k => (Pr.down[i].has(k))))
                                 && j == Math.min([...Pr.down[j]].filter(k => (Pr.down[j].has(k))))) {
                                 arrows.push(new Arrow(i, j))
-                                console.log("fou", i, j)
+                                //console.log("fou", i, j)
                             }
                         }
                     }
